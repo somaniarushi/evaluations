@@ -1,14 +1,28 @@
-import argparse
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
+from typing import List
+
 import pandas as pd
 
-from models.mapping import MODEL_LOADING_MAP, get_model_server
 from evals.mapping import EVAL_TASK_MAPPING, run_eval_from_name
+from models.mapping import MODEL_LOADING_MAP, get_model_server
 from typings import EvalResult
+
 
 @dataclass(frozen=True)
 class EvalConfig:
+    """
+    Configuration for an evaluation job. To use, specify:
+    model_loader: "openai" or "anthropic"
+    model: The model to use, based on the model loader
+    eval_name: The evaluation task to run
+    num_examples: How many datapoints of the eval to run
+    k_shots: How many shots to use for the eval
+    output_dir: Where to save the results
+
+    Please view MODEL_LOADING_MAP and EVAL_TASK_MAPPING for list of supported models and eval tasks.
+    """
+
     model_loader: str
     model: str
     eval_name: str
@@ -17,15 +31,22 @@ class EvalConfig:
     output_dir: str
 
     def __post_init__(self) -> None:
-        assert self.model_loader in MODEL_LOADING_MAP, f"Unknown {self.model_loader=} | Accepted values: {MODEL_LOADING_MAP.keys()}"
-        assert self.eval_name in EVAL_TASK_MAPPING, f"Unknown {self.eval_name=} | Accepted values: {EVAL_TASK_MAPPING.keys()}"
+        assert (
+            self.model_loader in MODEL_LOADING_MAP
+        ), f"Unknown {self.model_loader=} | Accepted values: {MODEL_LOADING_MAP.keys()}"
+        assert (
+            self.eval_name in EVAL_TASK_MAPPING
+        ), f"Unknown {self.eval_name=} | Accepted values: {EVAL_TASK_MAPPING.keys()}"
 
         model_loader_models = MODEL_LOADING_MAP[self.model_loader]
-        assert self.model in model_loader_models, f"Unknown {self.model=} | Accepted values: {model_loader_models.keys()}"
+        assert (
+            self.model in model_loader_models
+        ), f"Unknown {self.model=} | Accepted values: {model_loader_models.keys()}"
 
         if not Path(self.output_dir).exists():
-            logger.warn(f"Output directory {self.output_dir} does not exist. Creating it...")
+            print(f"Output directory {self.output_dir} does not exist. Creating it...")
             Path(self.output_dir).mkdir(parents=True)
+
 
 def run_eval(eval_config: EvalConfig) -> None:
     server = get_model_server(eval_config.model_loader, eval_config.model)
@@ -34,7 +55,7 @@ def run_eval(eval_config: EvalConfig) -> None:
         eval_name=eval_config.eval_name,
         server=server,
         num_examples=eval_config.num_examples,
-        k_shots=eval_config.k_shots
+        k_shots=eval_config.k_shots,
     )
 
     file_slug = f"{eval_config.eval_name}_{eval_config.model}_fs{eval_config.k_shots}_{eval_config.num_examples}"
@@ -52,30 +73,3 @@ def run_eval(eval_config: EvalConfig) -> None:
     eval_result_conversations: List[List[str]] = eval_result.convos
     eval_df = pd.DataFrame(eval_result_conversations)
     eval_df.to_csv(csv_out_path, index=False)
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Run evaluation")
-    
-    parser.add_argument("--model_loader", type=str, choices=["openai", "anthropic"], required=True)
-    parser.add_argument("--model", type=str, required=True)
-
-    parser.add_argument("--eval_name", type=str, choices=["mmlu"])
-    parser.add_argument("--num_examples", type=int, default=1000)
-    parser.add_argument("--k_shots", type=int, default=5)
-
-    parser.add_argument("--output_dir", type=str, default="output")
-
-    args = parser.parse_args()
-    eval_config = EvalConfig(
-        model_loader=args.model_loader,
-        model=args.model,
-        eval_name=args.eval_name,
-        num_examples=args.num_examples,
-        k_shots=args.k_shots,
-        output_dir=args.output_dir
-    )
-    print(f"Running evaluation with {eval_config=}")
-    run_eval(eval_config)
-
-if __name__ == "__main__":
-    main()
