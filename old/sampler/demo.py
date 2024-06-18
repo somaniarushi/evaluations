@@ -1,6 +1,12 @@
 import json
 import time
+
 import pandas as pd
+from sampler.chat_completion_sampler import (
+    OPENAI_SYSTEM_MESSAGE_API,
+    OPENAI_SYSTEM_MESSAGE_CHATGPT,
+    ChatCompletionSampler,
+)
 
 from . import common
 from .drop_eval import DropEval
@@ -9,11 +15,6 @@ from .humaneval_eval import HumanEval
 from .math_eval import MathEval
 from .mgsm_eval import MGSMEval
 from .mmlu_eval import MMLUEval
-from sampler.chat_completion_sampler import (
-    OPENAI_SYSTEM_MESSAGE_API,
-    OPENAI_SYSTEM_MESSAGE_CHATGPT,
-    ChatCompletionSampler,
-)
 
 
 def main():
@@ -56,18 +57,23 @@ def main():
                     equality_checker=equality_checker, num_examples=5 if debug else 2500
                 )
             case "gpqa":
-                return GPQAEval(n_repeats=1 if debug else 10, num_examples=5 if debug else None)
+                return GPQAEval(
+                    n_repeats=1 if debug else 10, num_examples=5 if debug else None
+                )
             case "mgsm":
                 return MGSMEval(num_examples_per_lang=10 if debug else 250)
             case "drop":
-                return DropEval(num_examples=10 if debug else 2000, train_samples_per_prompt=3)
+                return DropEval(
+                    num_examples=10 if debug else 2000, train_samples_per_prompt=3
+                )
             case "humaneval":
                 return HumanEval(num_examples=10 if debug else None)
             case _:
                 raise Exception(f"Unrecoginized eval type: {eval_name}")
 
     evals = {
-        eval_name: get_evals(eval_name) for eval_name in ["mmlu", "math", "gpqa", "mgsm", "drop"]
+        eval_name: get_evals(eval_name)
+        for eval_name in ["mmlu", "math", "gpqa", "mgsm", "drop"]
     }
     print(evals)
     debug_suffix = "_DEBUG" if debug else ""
