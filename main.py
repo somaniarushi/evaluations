@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -49,6 +49,9 @@ class EvalConfig:
 
 
 def run_eval(eval_config: EvalConfig) -> None:
+    """
+    Central eval runner
+    """
     server = get_model_server(eval_config.model_loader, eval_config.model)
     print(f"Using server: {server}")
     eval_result: EvalResult = run_eval_from_name(
@@ -60,16 +63,17 @@ def run_eval(eval_config: EvalConfig) -> None:
 
     file_slug = f"{eval_config.eval_name}_{eval_config.model}_fs{eval_config.k_shots}_{eval_config.num_examples}"
     # First, save out a summary of the score and metrics
-    summary_out_path = Path(eval_config.output_dir) / f"{file_slug}_summary.txt"
-    print(f"Saving evaluation summary to {summary_out_path}")
-    with open(summary_out_path, "w") as f:
-        f.write(f"Score: {eval_result.score}\n")
-        for metric, value in eval_result.metrics.items():
-            f.write(f"{metric}: {value}\n")
+    if eval_result.metrics is not None:
+        summary_out_path = Path(eval_config.output_dir) / f"{file_slug}_summary.txt"
+        print(f"Saving evaluation summary to {summary_out_path}")
+        with open(summary_out_path, "w", encoding="utf-8") as f:
+            f.write(f"Score: {eval_result.score}\n")
+            for metric, value in eval_result.metrics.items():
+                f.write(f"{metric}: {value}\n")
 
     # Next, save out the conversations
     csv_out_path = Path(eval_config.output_dir) / f"{file_slug}_conversations.csv"
     print(f"Saving evaluation results to {csv_out_path}")
-    eval_result_conversations: List[List[str]] = eval_result.convos
+    eval_result_conversations: List[List[Dict[str, Any]]] = eval_result.convos
     eval_df = pd.DataFrame(eval_result_conversations)
     eval_df.to_csv(csv_out_path, index=False)
