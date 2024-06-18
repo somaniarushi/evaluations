@@ -135,3 +135,6 @@ output/
 .vscode/
 .idea/
 .viminfo
+
+.vscode-server/
+.wget-hsts
