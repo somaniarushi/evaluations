@@ -6,8 +6,8 @@ from typing import Any
 import numpy as np
 from tqdm import tqdm
 
-from typings import EvalResult, Message, SingleEvalResult
 from models.base import SamplerBase
+from typings import EvalResult, Message, SingleEvalResult
 
 QUERY_TEMPLATE_MULTICHOICE = """
 Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.

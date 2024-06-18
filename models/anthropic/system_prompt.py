@@ -13,4 +13,3 @@ CLAUDE_SYSTEM_MESSAGE_LMSYS = (
     "pertinent to the human's query."
 ).format(currentDateTime="2024-04-01")
 # reference: https://github.com/lm-sys/FastChat/blob/7899355ebe32117fdae83985cf8ee476d2f4243f/fastchat/conversation.py#L894
-

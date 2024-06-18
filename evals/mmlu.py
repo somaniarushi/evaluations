@@ -6,14 +6,19 @@ https://arxiv.org/abs/2009.03300
 
 import random
 import re
+from typing import Any, Dict, List, Optional
+
 import pandas
-from typing import Any, Dict, Optional, List
 
-from common import ANSWER_PATTERN_MULTICHOICE, format_multichoice_question, map_with_progress, aggregate_results
-from typings import EvalResult, SingleEvalResult
-
-from models.base import SamplerBase
+from common import (
+    ANSWER_PATTERN_MULTICHOICE,
+    aggregate_results,
+    format_multichoice_question,
+    map_with_progress,
+)
 from evals.base import EvalBase
+from models.base import SamplerBase
+from typings import EvalResult, SingleEvalResult
 
 subject2category = {
     "abstract_algebra": "stem",
@@ -78,25 +83,31 @@ subject2category = {
 MMLU_CSV_URL = "https://openaipublic.blob.core.windows.net/simple-evals/mmlu.csv"
 RANDOM_SEED = 0
 
+
 class MMLUEval(EvalBase):
     def __init__(self, num_examples: Optional[int] = None, k_shots: int = 0):
         self.k_shots = k_shots
 
         df = pandas.read_csv(MMLU_CSV_URL)
         examples = [row.to_dict() for _, row in df.iterrows()]
-        
+
         self.examples = examples
 
         if k_shots > 0:
             print(f"Sampling {k_shots} shots per example")
-        k_shot_samples_per_example = [self.sample_k_shots(row, self.k_shots) for row in self.examples]
+        k_shot_samples_per_example = [
+            self.sample_k_shots(row, self.k_shots) for row in self.examples
+        ]
         self.examples = [
-            {**row, "k_shots": k_shot_samples} for row, k_shot_samples in zip(self.examples, k_shot_samples_per_example)
+            {**row, "k_shots": k_shot_samples}
+            for row, k_shot_samples in zip(self.examples, k_shot_samples_per_example)
         ]
 
         if num_examples:
-            self.examples = random.Random(RANDOM_SEED).sample(self.examples, num_examples)
-        
+            self.examples = random.Random(RANDOM_SEED).sample(
+                self.examples, num_examples
+            )
+
     def sample_k_shots(self, row: Dict[str, Any], k_shots: int) -> List[Dict[str, Any]]:
         sample = random.sample(self.examples, k_shots)
         # Assert that the sample does not contain the row itself
@@ -107,23 +118,37 @@ class MMLUEval(EvalBase):
 
     def __call__(self, sampler: SamplerBase) -> EvalResult:
         def get_single_eval_result(row: Dict[str, Any]) -> SingleEvalResult:
-            k_shot_messages = [
-                sampler._pack_message(content=format_multichoice_question(row), role="user")
+            k_shot_questions = [
+                sampler._pack_message(
+                    content=format_multichoice_question(row), role="user"
+                )
                 for row in row["k_shots"]
             ]
+            k_shot_answers = [
+                sampler._pack_message(content=row["Answer"], role="assistant")
+            ]
+            # Interleave questions and answers
+            k_shot_messages = [
+                message
+                for pair in zip(k_shot_questions, k_shot_answers)
+                for message in pair
+            ]
+
             prompt_messages = k_shot_messages + [
-                sampler._pack_message(content=format_multichoice_question(row), role="user")
+                sampler._pack_message(
+                    content=format_multichoice_question(row), role="user"
+                )
             ]
             response_text = sampler(prompt_messages)
 
             match = re.search(ANSWER_PATTERN_MULTICHOICE, response_text)
             extracted_answer = match.group(1) if match else None
             score = 1.0 if extracted_answer == row["Answer"] else 0.0
-            
+
             convo = prompt_messages + [dict(content=response_text, role="assistant")]
-            
+
             category = subject2category.get(row["Subject"], "other")
-            
+
             return SingleEvalResult(score=score, metrics={category: score}, convo=convo)
 
         results = map_with_progress(get_single_eval_result, self.examples)

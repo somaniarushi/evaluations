@@ -1,28 +1,35 @@
-import base64
+import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from openai import OpenAI
+import requests
 
 from models.base import SamplerBase
 from typings import MessageList
 
 MAX_ALLOWED_TRIALS = 5
 
+URL = "https://api.together.xyz/v1/chat/completions"
 
-class OpenAISampler(SamplerBase):
+HEADERS = {
+    "accept": "application/json",
+    "content-type": "application/json",
+    "Authorization": f"Bearer {os.environ.get('TOGETHER_BEARER_TOKEN')}",
+}
+
+
+class LlamaSampler(SamplerBase):
     """
-    Sample from OpenAI's chat completion API
+    Sample from Together's llama3 chat completion API
     """
 
     def __init__(
         self,
-        model: str,
+        model: str = "meta-llama/Llama-3-70b-chat-hf",
         system_message: Optional[str] = None,
         temperature: float = 0.5,
         max_tokens: int = 1024,
     ):
-        self.client = OpenAI()  # using api_key=os.environ.get("OPENAI_API_KEY")
         self.model = model
         self.system_message = system_message
         self.temperature = temperature
@@ -51,21 +58,20 @@ class OpenAISampler(SamplerBase):
         return {"role": str(role), "content": content}
 
     def __call__(self, message_list: MessageList) -> str:
-        if self.system_message:
-            message_list = [
-                self._pack_message("system", self.system_message)
-            ] + message_list
-
         trial = 0
         while trial < MAX_ALLOWED_TRIALS:
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=message_list,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                )
-                return response.choices[0].message.content
+                payload = {
+                    "model": self.model,
+                    "messages": message_list,
+                    "max_tokens": self.max_tokens,
+                    "temperature": self.temperature,
+                }
+                response = requests.post(URL, json=payload, headers=HEADERS)
+                assert (
+                    response.status_code == 200
+                ), f"Rate limit detected: {response.text}"
+                return response.json()["choices"][0]["message"]["content"]
             except Exception as e:
                 exception_backoff = 2**trial  # expontial back off
                 print(
@@ -76,7 +82,11 @@ class OpenAISampler(SamplerBase):
                 trial += 1
 
 
-class GPT4oSampler(OpenAISampler):
+class Llama3_70BSampler(LlamaSampler):
+    """
+    Sample from Together's llama3 chat completion API with the 370B model
+    """
+
     def __init__(
         self,
         system_message: Optional[str] = None,
@@ -84,14 +94,18 @@ class GPT4oSampler(OpenAISampler):
         max_tokens: int = 1024,
     ):
         super().__init__(
-            model="gpt-4o",
+            model="meta-llama/Llama-3-370b-chat-hf",
             system_message=system_message,
             temperature=temperature,
             max_tokens=max_tokens,
         )
 
 
-class GPT4TurboSampler(OpenAISampler):
+class Llama3_8BSampler(LlamaSampler):
+    """
+    Sample from Together's llama3 chat completion API with the 8B model
+    """
+
     def __init__(
         self,
         system_message: Optional[str] = None,
@@ -99,22 +113,7 @@ class GPT4TurboSampler(OpenAISampler):
         max_tokens: int = 1024,
     ):
         super().__init__(
-            model="gpt-4-turbo",
-            system_message=system_message,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-
-
-class GPT3_5TurboSampler(OpenAISampler):
-    def __init__(
-        self,
-        system_message: Optional[str] = None,
-        temperature: float = 0.5,
-        max_tokens: int = 1024,
-    ):
-        super().__init__(
-            model="gpt-3.5-turbo",
+            model="meta-llama/Llama-3-8b-chat-hf",
             system_message=system_message,
             temperature=temperature,
             max_tokens=max_tokens,

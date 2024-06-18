@@ -5,6 +5,7 @@ EVAL_TASK_MAPPING = {
     "mmlu": MMLUEval,
 }
 
+
 def run_eval_from_name(
     eval_name: str,
     server: str,

@@ -3,8 +3,8 @@ from typing import Optional
 
 import anthropic
 
-from typings import MessageList
 from models.base import SamplerBase
+from typings import MessageList
 
 
 class ClaudeCompletionSampler(SamplerBase):
@@ -19,7 +19,9 @@ class ClaudeCompletionSampler(SamplerBase):
         temperature: float = 0.0,  # default in Anthropic example
         max_tokens: int = 1024,
     ):
-        self.client = anthropic.Anthropic() # using api_key=os.environ.get("ANTHROPIC_API_KEY")
+        self.client = (
+            anthropic.Anthropic()
+        )  # using api_key=os.environ.get("ANTHROPIC_API_KEY")
         self.model = model
         self.system_message = system_message
         self.temperature = temperature
@@ -27,7 +29,11 @@ class ClaudeCompletionSampler(SamplerBase):
         self.image_format = "base64"
 
     def _handle_image(
-        self, image: str, encoding: str = "base64", format: str = "png", fovea: int = 768
+        self,
+        image: str,
+        encoding: str = "base64",
+        format: str = "png",
+        fovea: int = 768,
     ):
         new_image = {
             "type": "image",
@@ -67,14 +73,47 @@ class ClaudeCompletionSampler(SamplerBase):
                 trial += 1
             # unknown error shall throw exception
 
+
 class Claude3OpusSampler(ClaudeCompletionSampler):
-    def __init__(self, system_message: Optional[str] = None, temperature: float = 0.0, max_tokens: int = 1024):
-        super().__init__(model="claude-3-opus-20240229", system_message=system_message, temperature=temperature, max_tokens=max_tokens)
+    def __init__(
+        self,
+        system_message: Optional[str] = None,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ):
+        super().__init__(
+            model="claude-3-opus-20240229",
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
 
 class Claude3SonnetSampler(ClaudeCompletionSampler):
-    def __init__(self, system_message: Optional[str] = None, temperature: float = 0.0, max_tokens: int = 1024):
-        super().__init__(model="claude-3-sonnet-20240229", system_message=system_message, temperature=temperature, max_tokens=max_tokens)
+    def __init__(
+        self,
+        system_message: Optional[str] = None,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ):
+        super().__init__(
+            model="claude-3-sonnet-20240229",
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
 
 class Claude3HaikuSampler(ClaudeCompletionSampler):
-    def __init__(self, system_message: Optional[str] = None, temperature: float = 0.0, max_tokens: int = 1024):
-        super().__init__(model="claude-3-haiku-20240229", system_message=system_message, temperature=temperature, max_tokens=max_tokens)
+    def __init__(
+        self,
+        system_message: Optional[str] = None,
+        temperature: float = 0.0,
+        max_tokens: int = 1024,
+    ):
+        super().__init__(
+            model="claude-3-haiku-20240229",
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
