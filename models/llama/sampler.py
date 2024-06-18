@@ -66,6 +66,7 @@ class LlamaSampler(SamplerBase):
                     "messages": message_list,
                     "max_tokens": self.max_tokens,
                     "temperature": self.temperature,
+                    "stop": ["|<im_end>|"],
                 }
                 response = requests.post(URL, json=payload, headers=HEADERS)
                 assert (
@@ -94,7 +95,26 @@ class Llama3_70BSampler(LlamaSampler):
         max_tokens: int = 1024,
     ):
         super().__init__(
-            model="meta-llama/Llama-3-370b-chat-hf",
+            model="meta-llama/Llama-3-70b-chat-hf",
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+
+class Llama3_70BPreTrainSampler(LlamaSampler):
+    """
+    Sample from Together's llama3 chat completion API with the 370B model
+    """
+
+    def __init__(
+        self,
+        system_message: Optional[str] = None,
+        temperature: float = 0.5,
+        max_tokens: int = 1024,
+    ):
+        super().__init__(
+            model="meta-llama/Llama-3-70b-hf",
             system_message=system_message,
             temperature=temperature,
             max_tokens=max_tokens,
@@ -114,6 +134,25 @@ class Llama3_8BSampler(LlamaSampler):
     ):
         super().__init__(
             model="meta-llama/Llama-3-8b-chat-hf",
+            system_message=system_message,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+
+class Llama3_8BPreTrainSampler(LlamaSampler):
+    """
+    Sample from Together's llama3 chat completion API with the 8B model
+    """
+
+    def __init__(
+        self,
+        system_message: Optional[str] = None,
+        temperature: float = 0.5,
+        max_tokens: int = 1024,
+    ):
+        super().__init__(
+            model="meta-llama/Llama-3-8b-hf",
             system_message=system_message,
             temperature=temperature,
             max_tokens=max_tokens,

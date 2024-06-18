@@ -1,6 +1,6 @@
 from main import EvalConfig, run_eval
 
-MODEL = "llama3-8b"
+MODEL = "llama3-8b-pretrain"
 
 
 def get_llama8b_config(k_shot: int) -> EvalConfig:
