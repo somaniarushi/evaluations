@@ -95,26 +95,13 @@ class MMLUEval(EvalBase):
 
         if k_shots > 0:
             print(f"Sampling {k_shots} shots per example")
-        k_shot_samples_per_example = [
-            self.sample_k_shots(row, self.k_shots) for row in self.examples
-        ]
-        self.examples = [
-            {**row, "k_shots": k_shot_samples}
-            for row, k_shot_samples in zip(self.examples, k_shot_samples_per_example)
-        ]
+
+        self.examples = self.add_k_shot_samples(self.examples, k_shots)
 
         if num_examples:
             self.examples = random.Random(RANDOM_SEED).sample(
                 self.examples, num_examples
             )
-
-    def sample_k_shots(self, row: Dict[str, Any], k_shots: int) -> List[Dict[str, Any]]:
-        sample = random.sample(self.examples, k_shots)
-        # Assert that the sample does not contain the row itself
-        while row in sample:
-            sample.remove(row)
-            sample.append(random.choice(self.examples))
-        return sample
 
     def __call__(self, sampler: SamplerBase) -> EvalResult:
         def get_single_eval_result(row: Dict[str, Any]) -> SingleEvalResult:
