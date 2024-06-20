@@ -113,6 +113,7 @@ class MMLUEval(EvalBase):
             ]
             k_shot_answers = [
                 sampler._pack_message(content=row["Answer"], role="assistant")
+                for row in row["k_shots"]
             ]
             # Interleave questions and answers
             k_shot_messages = [
@@ -128,9 +129,12 @@ class MMLUEval(EvalBase):
             ]
             response_text = sampler(prompt_messages)
 
-            match = re.search(ANSWER_PATTERN_MULTICHOICE, response_text)
-            extracted_answer = match.group(1) if match else None
-            score = 1.0 if extracted_answer == row["Answer"] else 0.0
+            if len(response_text.strip()) == 0:
+                score = 0.0
+            else:
+                match = re.search(ANSWER_PATTERN_MULTICHOICE, response_text)
+                extracted_answer = match.group(1) if match else response_text.strip()[0]
+                score = 1.0 if extracted_answer == row["Answer"] else 0.0
 
             convo = prompt_messages + [dict(content=response_text, role="assistant")]
 

@@ -131,6 +131,7 @@ dmypy.json
 # Clean up
 # old/
 output/
+outputs/
 .lightning_studio/
 .vscode/
 .idea/
@@ -141,3 +142,7 @@ output/
 .fzf.bash
 .fzf.zsh
 .fzf
+
+images/
+corrected_outputs/
+gpqa_outputs/

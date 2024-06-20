@@ -11,13 +11,14 @@ import re
 import string
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-import blobfile as bf
+# from blobfile import BlobFile as bf
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from . import common
-from .common import ANSWER_PATTERN, HTML_JINJA
-from .types import Eval, EvalResult, SamplerBase, SingleEvalResult
+from common import ANSWER_PATTERN, aggregate_results, map_with_progress
+from evals.base import EvalBase
+from models.base import SamplerBase
+from typings import EvalResult, SingleEvalResult
 
 """
 From here through _normalize_answer was originally copied from:
@@ -241,23 +242,35 @@ def drop_metric(sample: str, reference: list[str]) -> Tuple[float, float]:
     return (max(em_scores), max(f1_scores))
 
 
-class DropEval(Eval):
-    def __init__(
-        self, num_examples: int | None = None, train_samples_per_prompt: int = 3
-    ):
+class DropEval(EvalBase):
+    def __init__(self, num_examples: int | None = None, k_shots: int = 3):
         self.seed = 42
         self._num_examples = num_examples
-        self._train_samples_per_prompt = train_samples_per_prompt
+        self._train_samples_per_prompt = k_shots
         self.train_jsonl = "https://openaipublic.blob.core.windows.net/simple-evals/drop_v0_train.jsonl.gz"
         self.test_jsonl = "https://openaipublic.blob.core.windows.net/simple-evals/drop_v0_dev.jsonl.gz"
-        with gzip.GzipFile(fileobj=bf.BlobFile(self.train_jsonl, "rb"), mode="rb") as f:
-            self.train_samples = list(map(json.loads, f.readlines()))
-        with gzip.GzipFile(fileobj=bf.BlobFile(self.test_jsonl, "rb"), mode="rb") as f:
-            self.test_samples = list(map(json.loads, f.readlines()))
-            if self._num_examples:
-                self.test_samples = random.Random(self.seed).sample(
-                    self.test_samples, self._num_examples
-                )
+
+        import pandas as pd
+
+        train_df = pd.read_json(self.train_jsonl, lines=True)
+        test_df = pd.read_json(self.test_jsonl, lines=True)
+
+        self.train_samples = train_df.to_dict(orient="records")
+        self.test_samples = test_df.to_dict(orient="records")
+
+        if self._num_examples:
+            self.test_samples = random.Random(self.seed).sample(
+                self.test_samples, self._num_examples
+            )
+
+        # with gzip.GzipFile(fileobj=bf.BlobFile(self.train_jsonl, "rb"), mode="rb") as f:
+        #     self.train_samples = list(map(json.loads, f.readlines()))
+        # with gzip.GzipFile(fileobj=bf.BlobFile(self.test_jsonl, "rb"), mode="rb") as f:
+        #     self.test_samples = list(map(json.loads, f.readlines()))
+        #     if self._num_examples:
+        #         self.test_samples = random.Random(self.seed).sample(
+        #             self.test_samples, self._num_examples
+        #         )
 
     def __call__(self, sampler: SamplerBase) -> EvalResult:
         rng = random.Random(self.seed)
@@ -302,22 +315,14 @@ Think step by step, then write a line of the form "Answer: $ANSWER" at the end o
                         if matches[i]
                     ]
                     score = True in matches
-                    html = common.jinja_env.from_string(HTML_JINJA).render(
-                        prompt_messages=prompt_messages,
-                        next_message=dict(content=extracted_answer, role="assistant"),
-                        score=score,
-                        correct_answer=correct_answers,
-                        extracted_answer=extracted_answers,
-                    )
                     convo = prompt_messages + [
                         dict(content=extracted_answer, role="assistant")
                     ]
                     return SingleEvalResult(
-                        html=html,
                         score=score,
                         convo=convo,
                         metrics={"em_score": em_score, "f1_score": f1_score},
                     )
 
-        results = common.map_with_progress(fn, self.test_samples)
-        return common.aggregate_results(results)
+        results = map_with_progress(fn, self.test_samples)
+        return aggregate_results(results)

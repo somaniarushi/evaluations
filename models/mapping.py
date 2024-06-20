@@ -3,12 +3,14 @@ from models.anthropic.sampler import (
     Claude3OpusSampler,
     Claude3SonnetSampler,
 )
+from models.gemma.sampler import Gemma_2B, Gemma_7B
 from models.llama.sampler import (
     Llama3_8BPreTrainSampler,
     Llama3_8BSampler,
     Llama3_70BPreTrainSampler,
     Llama3_70BSampler,
 )
+from models.mistral.sampler import Mistral_7B_Sampler, Mistral_7x8B_Sampler
 from models.openai.sampler import GPT3_5TurboSampler, GPT4oSampler, GPT4TurboSampler
 
 MODEL_LOADING_MAP = {
@@ -27,6 +29,14 @@ MODEL_LOADING_MAP = {
         "llama3-8b": Llama3_8BSampler,
         "llama3-70b-pretrain": Llama3_70BPreTrainSampler,
         "llama3-8b-pretrain": Llama3_8BPreTrainSampler,
+    },
+    "google": {
+        "gemma-2b-it": Gemma_2B,
+        "gemma-7b-it": Gemma_7B,
+    },
+    "mistral": {
+        "mistral-7b": Mistral_7B_Sampler,
+        "mistral-8x7b": Mistral_7x8B_Sampler,
     },
 }
 

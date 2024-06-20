@@ -7,7 +7,7 @@ import requests
 from models.base import SamplerBase
 from typings import MessageList
 
-MAX_ALLOWED_TRIALS = 5
+MAX_ALLOWED_TRIALS = 7
 
 URL = "https://api.together.xyz/v1/chat/completions"
 

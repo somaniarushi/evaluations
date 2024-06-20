@@ -1,9 +1,9 @@
+from evals.drop import DropEval
+from evals.gpqa import GPQAEval
 from evals.mmlu import MMLUEval
 from typings import EvalResult
 
-EVAL_TASK_MAPPING = {
-    "mmlu": MMLUEval,
-}
+EVAL_TASK_MAPPING = {"mmlu": MMLUEval, "drop": DropEval, "gpqa": GPQAEval}
 
 
 def run_eval_from_name(
