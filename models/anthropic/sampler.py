@@ -49,7 +49,7 @@ class ClaudeCompletionSampler(SamplerBase):
         return {"type": "text", "text": text}
 
     def _pack_message(self, role, content):
-        return {"role": str(role), "content": content}
+        return {"role": str(role), "content": [self._handle_text(content)]}
 
     def __call__(self, message_list: MessageList) -> str:
         trial = 0
@@ -57,7 +57,6 @@ class ClaudeCompletionSampler(SamplerBase):
             try:
                 message = self.client.messages.create(
                     model=self.model,
-                    system=self.system_message,
                     max_tokens=self.max_tokens,
                     temperature=self.temperature,
                     messages=message_list,
@@ -71,6 +70,9 @@ class ClaudeCompletionSampler(SamplerBase):
                 )
                 time.sleep(exception_backoff)
                 trial += 1
+            # except Exception as e:
+            #     print(f"Bad datapoint")
+            #     return ""
             # unknown error shall throw exception
 
 
